@@ -1,0 +1,10 @@
+Cineplex Booking Receipt
+--------------------------------------------------
+Name: arnob
+Email: arnosarker004@gmail.com
+Movie: Borbaad
+Time: Borbaad
+Seats Booked: 1
+Total Price: $170.0
+--------------------------------------------------
+Thank you for booking with Cineplex! Enjoy your movie!

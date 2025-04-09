@@ -1,0 +1,9 @@
+Cineplex Booking Receipt
+--------------------------------------------------
+Name: arnob
+Movie: Daagi
+Time: 07:00 PM
+Seats Booked: 1
+Total Price: $200.0
+--------------------------------------------------
+Thank you for booking with Cineplex! Enjoy your movie!
