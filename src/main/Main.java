@@ -15,6 +15,7 @@ public class Main {
     public static void main(String[] args) {
         Scanner sc = new Scanner(System.in);
         BookingService booking = new BookingService();
+        booking.setPromoApplied("");
 
         while (true) {
             System.out.println("\nWelcome to Cineplex Booking System!");
@@ -51,6 +52,7 @@ public class Main {
                     System.out.print("Enter your email: ");
                     String email = sc.nextLine();
                     user = new RegisteredUser(name, email);
+                    booking.setUserType(true);
                 } else {
                     System.out.println("You are not a registered user.");
                     continue;
@@ -66,6 +68,7 @@ public class Main {
             booking.chooseMovie();
             booking.chooseSeats();
 
+            // Promo code application
             if (user instanceof RegisteredUser) {
                 PromoService promoService = new PromoService();
                 System.out.print("Enter promo code (or press enter to skip): ");
@@ -75,38 +78,68 @@ public class Main {
                 System.out.println("Promo codes are only available for registered users.");
             }
 
-            String method;
-            PaymentMethod payment = null;
+            // Display booking details before proceeding to payment
+            System.out.println("\nBooking Details:");
+            System.out.println("Movie: " + booking.getSelectedMovie());
+            System.out.println("Time: " + booking.getSelectedTime());
+            System.out.println("Seats Booked: " + booking.getSeatsToBook());
 
-            while (true) {
-                System.out.print("Choose payment method (cash/card): ");
-                method = sc.nextLine().trim().toLowerCase();
+            // Show the base price
+            double basePrice = booking.getBasePrice();
+            System.out.println("Base Amount: $" + basePrice);
 
-                if (method.equals("card")) {
-                    payment = new CardPayment();
-                    break;
-                } else if (method.equals("cash")) {
-                    payment = new CashPayment();
-                    break;
-                } else {
-                    System.out.println("Invalid payment method. Please type 'cash' or 'card'.");
+            // Show the promo code applied, if any
+            String promoApplied = booking.getPromoApplied();
+            System.out.println("Promo Code Used: " + (promoApplied.isEmpty() ? "None" : promoApplied));
+
+            // Show the discounted price after applying promo
+            double discountedPrice = booking.getDiscountedPrice();
+            System.out.println("Discounted Amount: $" + discountedPrice);
+
+            // Prompt for payment method
+            System.out.println("\nPlease review your details before proceeding with payment.");
+            System.out.print("Proceed with payment? (yes/no): ");
+            String proceed = sc.nextLine().trim().toLowerCase();
+
+            if (proceed.equals("yes")) {
+                String method;
+                PaymentMethod payment = null;
+
+                while (true) {
+                    System.out.print("Choose payment method (cash/card): ");
+                    method = sc.nextLine().trim().toLowerCase();
+
+                    if (method.equals("card")) {
+                        payment = new CardPayment();
+                        break;
+                    } else if (method.equals("cash")) {
+                        payment = new CashPayment();
+                        break;
+                    } else {
+                        System.out.println("Invalid payment method. Please type 'cash' or 'card'.");
+                    }
                 }
-            }
 
-            payment.pay(booking.getDiscountedPrice());
+                payment.pay(discountedPrice);
 
-            System.out.print("Processing your booking");
-            for (int i = 0; i < 5; i++) {
-                try {
-                    Thread.sleep(500);
-                } catch (InterruptedException e) {
-                    e.printStackTrace();
+                // Simulating booking processing
+                System.out.print("Processing your booking");
+                for (int i = 0; i < 5; i++) {
+                    try {
+                        Thread.sleep(500);
+                    } catch (InterruptedException e) {
+                        e.printStackTrace();
+                    }
+                    System.out.print(".");
                 }
-                System.out.print(".");
-            }
 
-            System.out.println(" Booking confirmed. Enjoy your movie!");
-            generateReceipt(user, booking);
+                System.out.println(" Booking confirmed. Enjoy your movie!");
+                generateReceipt(user, booking);
+            } else {
+
+                booking.setPromoApplied("");
+                System.out.println("Booking cancelled. Returning to the main menu.");
+            }
 
             System.out.print("\nDo you want to return to the main menu? (yes/no): ");
             String again = sc.nextLine().trim().toLowerCase();
@@ -178,59 +211,73 @@ public class Main {
         System.out.print("Enter email of new user: ");
         String email = sc.nextLine();
 
-        try (BufferedWriter writer = new BufferedWriter(new FileWriter(USER_FILE, true))) {
-            writer.write(name + "," + email + "\n");
+        File file = new File(USER_FILE);
+        boolean needsNewLine = file.length() > 0;
+
+        try (BufferedWriter writer = new BufferedWriter(new FileWriter(file, true))) {
+            if (needsNewLine) {
+                writer.newLine();
+            }
+            writer.write(name + "," + email);
             System.out.println("User added successfully.");
         } catch (IOException e) {
             System.out.println("Error adding user: " + e.getMessage());
         }
     }
 
-    private static void viewUsers() {
-        try (BufferedReader reader = new BufferedReader(new FileReader(USER_FILE))) {
-            String line;
-            while ((line = reader.readLine()) != null) {
-                String[] user = line.split(",");
-                System.out.println("Name: " + user[0] + ", Email: " + user[1]);
-            }
-        } catch (IOException e) {
-            System.out.println("Error reading users: " + e.getMessage());
-        }
-    }
-
     private static void editUser(Scanner sc) {
         System.out.print("Enter the name of the user to edit: ");
-        String name = sc.nextLine();
+        String targetName = sc.nextLine();
         File inputFile = new File(USER_FILE);
         File tempFile = new File("temp_users.txt");
 
         boolean found = false;
 
-        try (BufferedReader reader = new BufferedReader(new FileReader(inputFile));
+        try (
+                BufferedReader reader = new BufferedReader(new FileReader(inputFile));
                 BufferedWriter writer = new BufferedWriter(new FileWriter(tempFile))) {
-
             String line;
             while ((line = reader.readLine()) != null) {
-                String[] user = line.split(",");
-                if (user[0].equalsIgnoreCase(name)) {
-                    System.out.print("Enter new email: ");
-                    String newEmail = sc.nextLine();
-                    writer.write(user[0] + "," + newEmail + "\n");
-                    found = true;
-                } else {
-                    writer.write(line + "\n");
-                }
-            }
+                String[] user = line.trim().split(",");
+                if (user.length >= 2 && user[0].trim().equalsIgnoreCase(targetName)) {
+                    System.out.print("Enter new name (leave blank to keep unchanged): ");
+                    String newName = sc.nextLine().trim();
+                    if (newName.isEmpty()) {
+                        newName = user[0].trim(); // Keep original name
+                    }
 
-            if (!found) {
-                System.out.println("User not found.");
-            } else {
-                inputFile.delete();
-                tempFile.renameTo(inputFile);
-                System.out.println("User details updated.");
+                    System.out.print("Enter new email (leave blank to keep unchanged): ");
+                    String newEmail = sc.nextLine().trim();
+                    if (newEmail.isEmpty()) {
+                        newEmail = user[1].trim(); // Keep original email
+                    }
+
+                    writer.write(newName + "," + newEmail);
+                    writer.newLine();
+                    found = true;
+                } else if (!line.trim().isEmpty()) {
+                    writer.write(line.trim());
+                    writer.newLine();
+                }
             }
         } catch (IOException e) {
             System.out.println("Error editing user: " + e.getMessage());
+            return;
+        }
+
+        if (found) {
+            if (inputFile.delete()) {
+                if (tempFile.renameTo(inputFile)) {
+                    System.out.println("User details updated.");
+                } else {
+                    System.out.println("Failed to rename temp file.");
+                }
+            } else {
+                System.out.println("Failed to delete original file.");
+            }
+        } else {
+            tempFile.delete();
+            System.out.println("User not found.");
         }
     }
 
@@ -242,28 +289,58 @@ public class Main {
 
         boolean found = false;
 
-        try (BufferedReader reader = new BufferedReader(new FileReader(inputFile));
+        try (
+                BufferedReader reader = new BufferedReader(new FileReader(inputFile));
                 BufferedWriter writer = new BufferedWriter(new FileWriter(tempFile))) {
-
             String line;
             while ((line = reader.readLine()) != null) {
-                String[] user = line.split(",");
-                if (user[0].equalsIgnoreCase(name)) {
+                System.out.println("[DEBUG] Checking line: " + line);
+                String[] user = line.trim().split(",");
+                if (user.length >= 2 && user[0].trim().equalsIgnoreCase(name)) {
                     found = true;
                     System.out.println("User deleted.");
-                } else {
-                    writer.write(line + "\n");
+                    continue; // Skip writing this user
+                } else if (!line.trim().isEmpty()) {
+                    writer.write(line.trim());
+                    writer.newLine();
                 }
-            }
-
-            if (!found) {
-                System.out.println("User not found.");
-            } else {
-                inputFile.delete();
-                tempFile.renameTo(inputFile);
             }
         } catch (IOException e) {
             System.out.println("Error deleting user: " + e.getMessage());
+            return;
+        }
+
+        if (found) {
+            if (inputFile.delete()) {
+                if (tempFile.renameTo(inputFile)) {
+                    System.out.println("User file updated.");
+                } else {
+                    System.out.println("Failed to rename temp file.");
+                }
+            } else {
+                System.out.println("Failed to delete original file.");
+            }
+        } else {
+            tempFile.delete();
+            System.out.println("User not found.");
+        }
+    }
+
+    private static void viewUsers() {
+        try (BufferedReader reader = new BufferedReader(new FileReader(USER_FILE))) {
+            String line;
+            while ((line = reader.readLine()) != null) {
+                if (line.trim().isEmpty())
+                    continue;
+                String[] user = line.trim().split(",");
+                if (user.length >= 2) {
+                    System.out.println("Name: " + user[0].trim() + ", Email: " + user[1].trim());
+                } else {
+                    System.out.println("[WARN] Malformed line skipped: " + line);
+                }
+            }
+        } catch (IOException e) {
+            System.out.println("Error reading users: " + e.getMessage());
         }
     }
 

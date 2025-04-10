@@ -6,8 +6,10 @@ public class BookingService {
 	private String selectedMovie;
 	private String selectedTime;
 	private int seatsToBook;
-	private double pricePerSeat = 200.00;
+	private final double pricePerSeat = 200.00;
 	private double discount = 0.00;
+	private String promoApplied = "";
+	private boolean isRegisteredUser = false; // Add this field to track if the user is registered or a guest
 
 	private final Scanner sc = new Scanner(System.in);
 
@@ -28,6 +30,11 @@ public class BookingService {
 				"11:00 AM - 02:00 PM", 50,
 				"02:00 PM - 05:00 PM", 50,
 				"05:00 PM - 08:00 PM", 50)));
+	}
+
+	// Method to set whether the user is a registered user or guest
+	public void setUserType(boolean isRegistered) {
+		this.isRegisteredUser = isRegistered;
 	}
 
 	public void addMovieAsAdmin() {
@@ -160,9 +167,16 @@ public class BookingService {
 		}
 	}
 
+	// Updated applyPromo method to prevent guest users from applying promo codes
 	public void applyPromo(Discount promoService, String code) {
+		if (!isRegisteredUser) {
+			System.out.println("Promo codes are only available for registered users.");
+			return; // Prevent applying promo code for guest users
+		}
+
 		if (!code.isEmpty() && promoService.isValid(code)) {
 			discount = promoService.applyDiscount(code);
+			promoApplied = code;
 			System.out.println("Promo Code Applied!!! Discount: " + (int) (discount * 100) + "%");
 		} else if (!code.isEmpty()) {
 			System.out.println("Invalid Promo Code");
@@ -174,11 +188,23 @@ public class BookingService {
 		return total - (total * discount);
 	}
 
+	public double getBasePrice() {
+		return seatsToBook * pricePerSeat;
+	}
+
 	public String getSelectedMovie() {
 		return selectedMovie;
 	}
 
 	public String getSeatsToBook() {
 		return String.valueOf(seatsToBook);
+	}
+
+	public String getPromoApplied() {
+		return promoApplied;
+	}
+
+	public void setPromoApplied(String promoApplied) {
+		this.promoApplied = promoApplied;
 	}
 }

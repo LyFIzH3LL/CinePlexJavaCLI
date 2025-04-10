@@ -1,0 +1,10 @@
+Cineplex Booking Receipt
+--------------------------------------------------
+Name: zidan
+Email: zidans.visuals@gmail.com
+Movie: Daagi
+Time: 07:00 PM - 10:00 PM
+Seats Booked: 1
+Total Price: $180.0
+--------------------------------------------------
+Thank you for booking with Cineplex! Enjoy your movie!
